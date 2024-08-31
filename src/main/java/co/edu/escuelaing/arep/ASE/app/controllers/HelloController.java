@@ -11,9 +11,9 @@ public class HelloController {
         return "Hello World!";
     }
 
-    @GetMapping("/index")
+    @GetMapping("/SpringECI")
     public static String index() {
-        return "Greetings from ECI Spring Boot!";
+        return "Greetings from SpringECI!";
     }
     @GetMapping("/suma")
     public static String suma(@RequestParam(value = "num1") int num1, @RequestParam(value = "num2") int num2){

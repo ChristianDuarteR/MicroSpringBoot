@@ -9,7 +9,6 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -183,9 +182,9 @@ public class SpringECI {
 
 
     private void serveStatic(OutputStream out, String path) throws IOException {
-
-        if (path.contains("html")|| path.contains("css") || path.contains("js") || path.contains("png")) {
-            File file = new File("static" + path.substring("/static".length()));
+        if (path.endsWith(".html") || path.endsWith(".css") || path.endsWith(".js") || path.endsWith(".png")) {
+            File file = new File("src/main/resources/static" + path);
+            System.out.println(file.getAbsoluteFile());
 
             if (file.exists() && !file.isDirectory()) {
                 String contentType = Files.probeContentType(file.toPath());
@@ -204,9 +203,10 @@ public class SpringECI {
             }
         } else {
             String badRequestResponse = "HTTP/1.1 400 Bad Request\r\n\r\n" +
-                    "Solicitud invalida.";
+                    "Solicitud inválida.";
             out.write(badRequestResponse.getBytes());
         }
     }
+
 
 }
