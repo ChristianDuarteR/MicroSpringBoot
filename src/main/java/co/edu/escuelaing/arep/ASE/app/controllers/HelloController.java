@@ -1,10 +1,10 @@
-package co.edu.escuelaing.arep.ASE.app;
+package co.edu.escuelaing.arep.ASE.app.controllers;
 
 import co.edu.escuelaing.arep.ASE.app.annotations.GetMapping;
 import co.edu.escuelaing.arep.ASE.app.annotations.RestController;
 
 @RestController
-public class HelloService {
+public class HelloController {
     @GetMapping("/hello")
     public static String hello() {
         return "Hello World!";
@@ -12,7 +12,7 @@ public class HelloService {
 
     @GetMapping("/index")
     public static String index() {
-        return "Greetings from Spring Boot!";
+        return "Greetings from ECI Spring Boot!";
     }
     @GetMapping("/suma")
     public static String suma() {
