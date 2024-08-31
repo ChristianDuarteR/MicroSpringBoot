@@ -3,6 +3,8 @@ package co.edu.escuelaing.arep.ASE.app;
 import co.edu.escuelaing.arep.ASE.app.annotations.GetMapping;
 import co.edu.escuelaing.arep.ASE.app.annotations.RequestParam;
 import co.edu.escuelaing.arep.ASE.app.annotations.RestController;
+import co.edu.escuelaing.arep.ASE.app.classes.ControllerMethod;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -46,21 +48,23 @@ public class SpringECI {
                 try {
                     Class<?> cls = Class.forName(className);
                     if (cls.isAnnotationPresent(RestController.class)) {
+
                         Object instance = cls.getDeclaredConstructor().newInstance();
                         for (java.lang.reflect.Method method : cls.getDeclaredMethods()) {
                             if (method.isAnnotationPresent(GetMapping.class)) {
                                 GetMapping annotation = method.getAnnotation(GetMapping.class);
                                 String route = annotation.value();
                                 services.put(route, new ControllerMethod(instance, method));
-                            } // Aca podrias poner el PUT, POST, DELETE
-                        }
+                            } // Aca pondria el PUT, POST, DELETE SI TUVIERA UNO
+                         }
                         System.out.println("Controlador " + className + " cargado.");
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.println("Se genero un error Durante la carga de Controladores: "+ e.getCause());
                 }
             }
         });
+        System.out.println("Todos los Controladores Fueron Cargados con exito\n " + services.toString() + "Listo para funcionar");
     }
     private void start() {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -92,7 +96,7 @@ public class SpringECI {
             return;
         }
 
-        String method = tokens[0];
+        // String restMethod = tokens[0]; Posible Implementacion de POST, PUT, DELETE (Por ahora solo GET)
         String pathWithParams = tokens[1];
         String path = pathWithParams.split("\\?")[0];
         String query = "";
@@ -105,28 +109,39 @@ public class SpringECI {
             return;
         }
 
-        ControllerMethod cm = services.get(path.substring(4));
-        if (cm != null) {
+        ControllerMethod controllerMethod = services.get(path.substring(4));
+        if (controllerMethod != null) {
             try {
-                java.lang.reflect.Method controllerMethod = cm.method;
-                java.lang.reflect.Parameter[] parameters = controllerMethod.getParameters();
-                Object[] args = new Object[parameters.length];
+                java.lang.reflect.Method method = controllerMethod.getMethod();
+                java.lang.reflect.Parameter[] parameters = method.getParameters(); // Parametros
+                Map<String, String> queryParams = parseQuery(query); // Argumentos
 
-                Map<String, String> queryParams = parseQuery(query);
+                Object[] args = new Object[parameters.length];
+                Class<?>[] paramTypes = method.getParameterTypes();
+                RequestParam rq;
+                String paramValue;
+                String value;
 
                 for (int i = 0; i < parameters.length; i++) {
                     if (parameters[i].isAnnotationPresent(RequestParam.class)) {
-                        RequestParam rp = parameters[i].getAnnotation(RequestParam.class);
-                        String value = queryParams.getOrDefault(rp.value(), rp.defaultValue());
-                        args[i] = value;
+                        rq = parameters[i].getAnnotation(RequestParam.class);
+                        value = rq.value();
+                        paramValue = queryParams.get(value);
+                        if(paramTypes[i] == int.class){
+                            args[i] = Integer.parseInt(paramValue);
+                        } else if (paramTypes[i] == double.class) {
+                            args[i] = Double.parseDouble(paramValue);
+                        } else  {
+                            args[i] = paramValue;
+                        }
                     }
                 }
 
-                Object response = controllerMethod.invoke(cm.instance, args);
+                Object response = method.invoke(controllerMethod.getInstance(), args);
                 String responseBody = response.toString();
                 String contentType = "text/html";
 
-                if (controllerMethod.getReturnType().equals(String.class)) {
+                if (method.getReturnType().equals(String.class)) {
                     contentType = "text/html";
                 }
 
@@ -168,21 +183,30 @@ public class SpringECI {
 
 
     private void serveStatic(OutputStream out, String path) throws IOException {
-        File file = new File("static" + path.substring("/static".length()));
-        if (file.exists() && !file.isDirectory()) {
-            String contentType = Files.probeContentType(file.toPath());
-            byte[] fileBytes = Files.readAllBytes(file.toPath());
 
-            String httpResponse = "HTTP/1.1 200 OK\r\n" +
-                    "Content-Type: " + contentType + "\r\n" +
-                    "Content-Length: " + fileBytes.length + "\r\n" +
-                    "\r\n";
-            out.write(httpResponse.getBytes());
-            out.write(fileBytes);
+        if (path.contains("html")|| path.contains("css") || path.contains("js") || path.contains("png")) {
+            File file = new File("static" + path.substring("/static".length()));
+
+            if (file.exists() && !file.isDirectory()) {
+                String contentType = Files.probeContentType(file.toPath());
+                byte[] fileBytes = Files.readAllBytes(file.toPath());
+
+                String httpResponse = "HTTP/1.1 200 OK\r\n" +
+                        "Content-Type: " + contentType + "\r\n" +
+                        "Content-Length: " + fileBytes.length + "\r\n" +
+                        "\r\n";
+                out.write(httpResponse.getBytes());
+                out.write(fileBytes);
+            } else {
+                String notFoundResponse = "HTTP/1.1 404 Not Found\r\n\r\n" +
+                        "Archivo no encontrado.";
+                out.write(notFoundResponse.getBytes());
+            }
         } else {
-            String notFoundResponse = "HTTP/1.1 404 Not Found\r\n\r\n" +
-                    "Archivo no encontrado.";
-            out.write(notFoundResponse.getBytes());
+            String badRequestResponse = "HTTP/1.1 400 Bad Request\r\n\r\n" +
+                    "Solicitud invalida.";
+            out.write(badRequestResponse.getBytes());
         }
     }
+
 }
