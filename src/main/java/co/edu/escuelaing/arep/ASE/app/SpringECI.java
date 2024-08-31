@@ -105,62 +105,51 @@ public class SpringECI {
 
         if (!path.startsWith("/api/")) {
             serveStatic(out, path);
-            return;
-        }
+        }else handleApiRequest(path, query, out);
 
+    }
+
+    private void handleApiRequest(String path, String query, OutputStream out) throws IOException {
         ControllerMethod controllerMethod = services.get(path.substring(4));
         if (controllerMethod != null) {
             try {
                 java.lang.reflect.Method method = controllerMethod.getMethod();
-                java.lang.reflect.Parameter[] parameters = method.getParameters(); // Parametros
-                Map<String, String> queryParams = parseQuery(query); // Argumentos
-
-                Object[] args = new Object[parameters.length];
-                Class<?>[] paramTypes = method.getParameterTypes();
-                RequestParam rq;
-                String paramValue;
-                String value;
-
-                for (int i = 0; i < parameters.length; i++) {
-                    if (parameters[i].isAnnotationPresent(RequestParam.class)) {
-                        rq = parameters[i].getAnnotation(RequestParam.class);
-                        value = rq.value();
-                        paramValue = queryParams.get(value);
-                        if(paramTypes[i] == int.class){
-                            args[i] = Integer.parseInt(paramValue);
-                        } else if (paramTypes[i] == double.class) {
-                            args[i] = Double.parseDouble(paramValue);
-                        } else  {
-                            args[i] = paramValue;
-                        }
-                    }
-                }
+                java.lang.reflect.Parameter[] parameters = method.getParameters();
+                Map<String, String> queryParams = parseQuery(query);
+                Object[] args = resolveArguments(parameters, queryParams);
 
                 Object response = method.invoke(controllerMethod.getInstance(), args);
                 String responseBody = response.toString();
-                String contentType = "text/html";
+                String contentType = "text/html"; // Cambia según el tipo de respuesta
+                sendJSONResponse(responseBody, contentType, "200 OK", out);
 
-                if (method.getReturnType().equals(String.class)) {
-                    contentType = "text/html";
-                }
-
-                String httpResponse = "HTTP/1.1 200 OK\r\n" +
-                        "Content-Type: " + contentType + "\r\n" +
-                        "Content-Length: " + responseBody.length() + "\r\n" +
-                        "\r\n" +
-                        responseBody;
-                out.write(httpResponse.getBytes());
             } catch (Exception e) {
-                String errorResponse = "HTTP/1.1 500 Internal Server Error\r\n\r\n" +
-                        "Error en el servidor.";
-                out.write(errorResponse.getBytes());
+                sendErrorResponse(out, "500 Internal Server Error", "Error en el servidor.");
                 e.printStackTrace();
             }
         } else {
-            String notFoundResponse = "HTTP/1.1 404 Not Found\r\n\r\n" +
-                    "Página no encontrada.";
-            out.write(notFoundResponse.getBytes());
+            sendErrorResponse(out, "404 Not Found", "Página no encontrada.");
         }
+    }
+
+    private Object[] resolveArguments(java.lang.reflect.Parameter[] parameters, Map<String, String> queryParams) {
+        Object[] args = new Object[parameters.length];
+        for (int i = 0; i < parameters.length; i++) {
+            java.lang.reflect.Parameter parameter = parameters[i];
+            if (parameter.isAnnotationPresent(RequestParam.class)) {
+                RequestParam requestParam = parameter.getAnnotation(RequestParam.class);
+                String paramValue = queryParams.get(requestParam.value());
+                Class<?> paramType = parameter.getType();
+                if (paramType == int.class) {
+                    args[i] = Integer.parseInt(paramValue);
+                } else if (paramType == double.class) {
+                    args[i] = Double.parseDouble(paramValue);
+                } else {
+                    args[i] = paramValue;
+                }
+            }
+        }
+        return args;
     }
 
     private Map<String, String> parseQuery(String query) {
@@ -184,10 +173,9 @@ public class SpringECI {
     private void serveStatic(OutputStream out, String path) throws IOException {
         if (path.endsWith(".html") || path.endsWith(".css") || path.endsWith(".js") || path.endsWith(".png")) {
             File file = new File("src/main/resources/static" + path);
-            System.out.println(file.getAbsoluteFile());
 
             if (file.exists() && !file.isDirectory()) {
-                String contentType = Files.probeContentType(file.toPath());
+                String contentType = getContentType(file.getName());
                 byte[] fileBytes = Files.readAllBytes(file.toPath());
 
                 String httpResponse = "HTTP/1.1 200 OK\r\n" +
@@ -208,5 +196,36 @@ public class SpringECI {
         }
     }
 
+    private String getContentType(String filePath) {
+        if (filePath.endsWith(".html")) {
+            return "text/html";
+        } else if (filePath.endsWith(".css")) {
+            return "text/css";
+        } else if (filePath.endsWith(".js")) {
+            return "application/javascript";
+        } else if (filePath.endsWith(".png")) {
+            return "image/png";
+        } else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
+            return "image/jpeg";
+        } else if (filePath.endsWith(".gif")) {
+            return "image/gif";
+        } else {
+            return "application/json";
+        }
+    }
 
+    public void sendJSONResponse(String responseBody,String contentType, String responseCode, OutputStream out ) throws IOException {
+        String httpResponse = "HTTP/1.1 "+responseCode+"\r\n" +
+                "Content-Type: " + contentType + "\r\n" +
+                "Content-Length: " + responseBody.length() + "\r\n" +
+                "\r\n" +
+                responseBody;
+        out.write(httpResponse.getBytes());
+    }
+
+    private void sendErrorResponse(OutputStream out, String status, String message) throws IOException {
+        String errorResponse = "HTTP/1.1 " + status + "\r\n\r\n" +
+                message;
+        out.write(errorResponse.getBytes());
+    }
 }
