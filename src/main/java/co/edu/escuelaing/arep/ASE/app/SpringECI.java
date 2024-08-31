@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -119,8 +120,9 @@ public class SpringECI {
                 Object[] args = resolveArguments(parameters, queryParams);
 
                 Object response = method.invoke(controllerMethod.getInstance(), args);
-                String responseBody = response.toString();
-                String contentType = "text/html"; // Cambia según el tipo de respuesta
+                String contentType = determineContentType(response)[0];
+                String responseBody = determineContentType(response)[1];
+
                 sendJSONResponse(responseBody, contentType, "200 OK", out);
 
             } catch (Exception e) {
@@ -175,7 +177,7 @@ public class SpringECI {
             File file = new File("src/main/resources/static" + path);
 
             if (file.exists() && !file.isDirectory()) {
-                String contentType = getContentType(file.getName());
+                String contentType = Files.probeContentType(Path.of(path));
                 byte[] fileBytes = Files.readAllBytes(file.toPath());
 
                 String httpResponse = "HTTP/1.1 200 OK\r\n" +
@@ -196,22 +198,24 @@ public class SpringECI {
         }
     }
 
-    private String getContentType(String filePath) {
-        if (filePath.endsWith(".html")) {
-            return "text/html";
-        } else if (filePath.endsWith(".css")) {
-            return "text/css";
-        } else if (filePath.endsWith(".js")) {
-            return "application/javascript";
-        } else if (filePath.endsWith(".png")) {
-            return "image/png";
-        } else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
-            return "image/jpeg";
-        } else if (filePath.endsWith(".gif")) {
-            return "image/gif";
+    private String[] determineContentType(Object response) {
+        String contentType;
+        String responseBody;
+        if (response instanceof String) {
+            responseBody = (String) response;
+            if (responseBody.startsWith("{") || responseBody.startsWith("[")) {
+                contentType = "application/json";
+            } else {
+                contentType = "text/html";
+            }
+        } else if (response instanceof byte[]) {
+            responseBody = new String((byte[]) response);
+            contentType = "application/octet-stream";
         } else {
-            return "application/json";
+            responseBody = response.toString();
+            contentType = "text/plain";
         }
+        return new String[]{contentType, responseBody};
     }
 
     public void sendJSONResponse(String responseBody,String contentType, String responseCode, OutputStream out ) throws IOException {
@@ -221,6 +225,8 @@ public class SpringECI {
                 "\r\n" +
                 responseBody;
         out.write(httpResponse.getBytes());
+        out.write(responseBody.getBytes());
+
     }
 
     private void sendErrorResponse(OutputStream out, String status, String message) throws IOException {
