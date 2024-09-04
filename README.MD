@@ -52,7 +52,24 @@ Este proyecto utiliza una arquitectura cliente-servidor, donde los clientes env�
 
 ## REST Endpoints
 
-El servidor proporciona los siguientes endpoints REST:
+El servidor proporciona los siguientes endpoints REST sobre cada Controlador de ejemplo
+
+### 1. **ExampleController**
+
+- **`/bye`**: Devuelve el mensaje `"Good Bye"`.
+- **`/cedula`**: Devuelve el mensaje `"1000224420"`.
+
+### 2. **GreetingController**
+
+- **`/greeting`**: Devuelve un objeto `Greeting` con un mensaje personalizado basado en el parámetro de consulta `name`. Si no se proporciona, utiliza `"Mundo"` como valor predeterminado.
+- **`/users`**: Devuelve una lista de usuarios en formato JSON.
+
+### 3. **HelloController**
+
+- **`/hello`**: Devuelve el mensaje `"Hello World!"`.
+- **`/SpringECI`**: Devuelve el mensaje `"Greetings from SpringECI!"`.
+- **`/suma`**: Realiza la suma de dos números enteros (`num1` y `num2`) proporcionados como parámetros de consulta y devuelve el resultado.
+- **`/multi`**: Realiza la multiplicación de dos números enteros (`num1` y `num2`) proporcionados como parámetros de consulta y devuelve el resultado.
 
 ## Static Files
 
