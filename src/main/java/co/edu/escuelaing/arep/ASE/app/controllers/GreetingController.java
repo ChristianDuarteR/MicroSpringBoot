@@ -3,10 +3,16 @@ package co.edu.escuelaing.arep.ASE.app.controllers;
 import co.edu.escuelaing.arep.ASE.app.annotations.GetMapping;
 import co.edu.escuelaing.arep.ASE.app.annotations.RequestParam;
 import co.edu.escuelaing.arep.ASE.app.annotations.RestController;
+import co.edu.escuelaing.arep.ASE.app.classes.Greeting;
+import co.edu.escuelaing.arep.ASE.app.classes.User;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import netscape.javascript.JSObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -17,26 +23,30 @@ public class GreetingController {
     private final AtomicLong counter = new AtomicLong();
 
     @GetMapping("/greeting")
-    public String greeting(@RequestParam(value = "name", defaultValue = "Mundo") String name) {
-        return "<html><body><h1>" + String.format(template, name) + "</h1></body></html>";
+    public Greeting greeting(@RequestParam(value = "name", defaultValue = "Mundo") String name) {
+        return new Greeting(counter.incrementAndGet(), String.format(template, name));
     }
 
     @GetMapping("/users")
     public String users() {
+        ObjectMapper mapper = new ObjectMapper();
 
-        StringBuilder jsonBuilder = new StringBuilder();
-        jsonBuilder.append("{\"users\": [");
+        List<User> users = new ArrayList<>();
+        users.add(new User(1, "Christian Duarte"));
+        users.add(new User(2, "Jane Doe"));
+        users.add(new User(3, "Lucas González"));
+        users.add(new User(4, "Emma Martínez"));
+        users.add(new User(5, "Sofia Perez"));
 
-        jsonBuilder.append("{\"id\": 1, \"name\": \"Christian Duarte\"}, ");
-        jsonBuilder.append("{\"id\": 2, \"name\": \"Jane Doe\"}, ");
-        jsonBuilder.append("{\"id\": 3, \"name\": \"Lucas González\"}, ");
-        jsonBuilder.append("{\"id\": 4, \"name\": \"Emma Martínez\"}, ");
-        jsonBuilder.append("{\"id\": 5, \"name\": \"Sofia Perez\"}");
+        Map<String, Object> response = new HashMap<>();
+        response.put("users", users);
 
-        jsonBuilder.append("]}");
-        System.out.println(jsonBuilder);
-
-        return jsonBuilder.toString();
+        try {
+            return mapper.writeValueAsString(response);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return "{}";
+        }
     }
 
 }

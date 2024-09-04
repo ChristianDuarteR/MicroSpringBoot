@@ -4,6 +4,7 @@ import co.edu.escuelaing.arep.ASE.app.annotations.GetMapping;
 import co.edu.escuelaing.arep.ASE.app.annotations.RequestParam;
 import co.edu.escuelaing.arep.ASE.app.annotations.RestController;
 import co.edu.escuelaing.arep.ASE.app.classes.ControllerMethod;
+import co.edu.escuelaing.arep.ASE.app.classes.Greeting;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -15,7 +16,7 @@ import java.util.Map;
 
 public class SpringECI {
 
-    private static Map<String, ControllerMethod> services = new HashMap<>();
+    public static Map<String, ControllerMethod> services = new HashMap<>();
 
     private static final int PORT = 8080;
 
@@ -34,7 +35,7 @@ public class SpringECI {
      * Carga del disco duro los CONTROLADORES
      * @param basePackage
      */
-    private void loadControllers(String basePackage) {
+    public void loadControllers(String basePackage) {
         String path = basePackage.replace('.', '/');
         InputStream stream = getClass().getClassLoader().getResourceAsStream(path);
         if (stream == null) {
@@ -56,7 +57,7 @@ public class SpringECI {
                                 String route = annotation.value();
                                 services.put(route, new ControllerMethod(instance, method));
                             } // Aca pondria el PUT, POST, DELETE SI TUVIERA UNO
-                         }
+                        }
                         System.out.println("Controlador " + className + " cargado.");
                     }
                 } catch (Exception e) {
@@ -110,7 +111,7 @@ public class SpringECI {
 
     }
 
-    private void handleApiRequest(String path, String query, OutputStream out) throws IOException {
+    public void handleApiRequest(String path, String query, OutputStream out) throws IOException {
         ControllerMethod controllerMethod = services.get(path.substring(4));
         if (controllerMethod != null) {
             try {
@@ -134,7 +135,7 @@ public class SpringECI {
         }
     }
 
-    private Object[] resolveArguments(java.lang.reflect.Parameter[] parameters, Map<String, String> queryParams) {
+    public Object[] resolveArguments(java.lang.reflect.Parameter[] parameters, Map<String, String> queryParams) {
         Object[] args = new Object[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
             java.lang.reflect.Parameter parameter = parameters[i];
@@ -198,11 +199,11 @@ public class SpringECI {
         }
     }
 
-    private String[] determineContentType(Object response) {
+    public String[] determineContentType(Object response) {
         String contentType;
         String responseBody;
-        if (response instanceof String) {
-            responseBody = (String) response;
+        if (response instanceof  String|| response instanceof Greeting) {
+            responseBody = response.toString();
             if (responseBody.startsWith("{") || responseBody.startsWith("[")) {
                 contentType = "application/json";
             } else {
@@ -229,7 +230,7 @@ public class SpringECI {
 
     }
 
-    private void sendErrorResponse(OutputStream out, String status, String message) throws IOException {
+    public void sendErrorResponse(OutputStream out, String status, String message) throws IOException {
         String errorResponse = "HTTP/1.1 " + status + "\r\n\r\n" +
                 message;
         out.write(errorResponse.getBytes());

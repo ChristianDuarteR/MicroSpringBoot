@@ -20,4 +20,10 @@ public class HelloController {
         int suma= num1 + num2;
         return String.valueOf(suma);
     }
+
+    @GetMapping("/multi")
+    public String multiplicacion(@RequestParam(value = "num1") int num1, @RequestParam(value = "num2") int num2){
+        int multi = num1 * num2;
+        return String.valueOf(multi);
+    }
 }

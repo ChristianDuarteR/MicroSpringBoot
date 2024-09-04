@@ -34,6 +34,13 @@ Esto ejecutará todas las pruebas en el proyecto y generará un informe detallad
 
 ## And coding style tests
 
+1. testLoadControllers(): Verifica que los controladores se carguen correctamente desde el paquete base especificado.
+2. testHandleApiRequest(): Simula una solicitud GET a una ruta específica (/api/greeting) y verifica que el servidor responda correctamente.
+3. testDetermineContentType(): Prueba la lógica que determina el tipo de contenido (Content-Type) de la respuesta en función del objeto de respuesta.
+4. testSendJSONResponse(): Verifica que el método de envío de respuestas JSON funcione correctamente.
+5. testSendErrorResponse(): Verifica que las respuestas de error se envíen correctamente.
+
+![img.png](img.png)
 
 ## Built With
 
